@@ -22,7 +22,7 @@ public:
     ConfigReader() = default;
     static ConfigReader& getInstance();
     int loadConf(const std::string &confFile);
-    std::string conf(const std::string& section="default", const std::string& key);
+    std::string conf(const std::string& key, const std::string& sectionName="default");
     
 private:
     std::string m_confPath;

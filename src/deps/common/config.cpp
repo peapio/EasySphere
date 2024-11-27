@@ -47,10 +47,10 @@ int ConfigReader::loadConf(const std::string& confFile) {
     return 0;
 }
 
-std::string ConfigReader::conf(const std::string& section, const std::string& key)
+std::string ConfigReader::conf(const std::string& key, const std::string& sectionName)
 {
     for (auto& section : m_sections) {
-        if (section.sectionName == section) {
+        if (section.sectionName == sectionName) {
             std::string value = getValue(section.configData, key);
             if (!value.empty()) {
                 return value;
