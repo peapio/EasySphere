@@ -52,7 +52,7 @@ void Logger::setMaxFileSize(size_t maxFileSize)
     m_maxFileSize = maxFileSize;
 }
 
-void Logger::log(LOG_LEVEL logLevel, const std::string& file, int line, const std::string& format, ...)
+void Logger::log(LOG_LEVEL logLevel,const std::string& file, int line, const std::string& format, ...)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (logLevel >= m_logLevel)
@@ -62,7 +62,8 @@ void Logger::log(LOG_LEVEL logLevel, const std::string& file, int line, const st
         char message[1024];
         vsnprintf(message, sizeof(message), format.c_str(), args);
         va_end(args);
-        std::string logMessage = formatLog(logLevel, file, line, message);
+        std::string file_str = file;
+        std::string logMessage = formatLog(logLevel, file_str, line, message);
         m_currentFileSize += logMessage.size();
 
         if(m_currentFileSize > m_maxFileSize && m_maxFileSize > 0)
@@ -96,13 +97,17 @@ int Logger::rotateLogFile()
     return 0;
 }
 
-std::string Logger::formatLog(LOG_LEVEL logLevel, const std::string& file, int line, const std::string& message)
+std::string Logger::formatLog(LOG_LEVEL logLevel, std::string& file, int line, const std::string& message)
 {
     std::string logLevelString = logLevelToString(logLevel);
     std::string timeStamp = getTimeStamp();
     std::string logMessage = "[" + timeStamp + "][" + logLevelString + "]";
     if (!file.empty())
     {
+        if(file.size() > 10)
+        {
+            file = ".." + file.substr(file.size() - 20);
+        }
         logMessage += "[" + file + ":" + std::to_string(line) + "] ";
     }
     logMessage += message;

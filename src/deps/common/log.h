@@ -27,7 +27,7 @@ class Logger {
 
     std::mutex m_mutex;
     
-    std::string formatLog(LOG_LEVEL logLevel, const std::string &file, int line, const std::string& message);
+    std::string formatLog(LOG_LEVEL logLevel, std::string& file, int line, const std::string& message);
     std::string logLevelToString(LOG_LEVEL logLevel);
     int rotateLogFile();
 public:
