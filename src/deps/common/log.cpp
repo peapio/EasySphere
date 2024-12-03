@@ -1,21 +1,40 @@
 #include "log.h"
 #include "utils.h"
 
-Logger& Logger::getInstance()
-{
-    static Logger instance;
-    return instance;
-}
+namespace common {
 
 Logger::~Logger()
 {
+    if (m_logQueue && m_logThread && m_logThread->joinable()) {
+        m_isOpen = false;
+        m_logThread->join();
+    }
+    m_logFileStream.flush();
     if(m_logFileStream.is_open())
     {
         m_logFileStream.close();
     }
 }
 
-int Logger::setLogFile(std::string& filename)
+void Logger::init() {
+    setLogFile(gConf.conf("trace_file"));
+    setMaxFileSize(std::stoul(gConf.conf("maximum_trace_file_size")));
+    m_maxQueueSize = std::stoi(gConf.conf("max_queue_size"));
+    if (m_maxQueueSize > 0) {
+        m_logQueue = std::make_unique<BlockQueue<std::string>>(m_maxQueueSize);
+        m_logThread = std::make_unique<std::thread>(&Logger::flushLog, this);
+    }
+}
+
+void Logger::flushLog() {
+    while (m_isOpen || !m_logQueue->empty()) {
+        std::string log;
+        m_logQueue->pop(log);
+        m_logFileStream << log << std::endl;
+    }
+}
+
+int Logger::setLogFile(std::string filename)
 {
     if(m_logFileStream.is_open())
     {
@@ -70,12 +89,23 @@ void Logger::log(LOG_LEVEL logLevel,const std::string& file, int line, const std
         {
             rotateLogFile();
         }
-
-        std::cout << logMessage << std::endl;
-
-        if(m_logFileStream.is_open())
+        if (m_maxQueueSize > 0 && m_logQueue)
         {
-            m_logFileStream << logMessage << std::endl;
+            m_logQueue->push(logMessage);
+        }
+        else 
+        {
+            if (m_outputToConsole)
+            {
+                std::cout << logMessage << std::endl;
+            }
+            if(m_logFileStream.is_open())
+            {
+                m_logFileStream << logMessage << std::endl;
+            }
+            else {
+                std::cerr << "log file is not open" << std::endl;
+            }
         }
     }
 }
@@ -131,4 +161,6 @@ std::string Logger::logLevelToString(LOG_LEVEL logLevel)
         default:
             return "UNKNOWN";
     }
+}
+
 }
